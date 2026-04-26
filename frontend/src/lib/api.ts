@@ -1,5 +1,4 @@
-const BASE_URL =
-  "https://right-expenditure-spiritual-villa.trycloudflare.com/api";
+const BASE_URL = "https://medassist-j8zx.onrender.com/api";
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const tg = (window as any).Telegram?.WebApp;
   const headers: Record<string, string> = {
