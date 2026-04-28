@@ -25,7 +25,8 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379/0"
 
     # AI — currently Gemini (switch to anthropic_api_key later if needed)
-    gemini_api_key: str = ""
+    # gemini_api_key: str = ""
+    gemini_api_key: str = ""  # Groq API key saqlanadi shu yerda
     anthropic_api_key: str = ""  # kept for future migration
 
     # Admin
