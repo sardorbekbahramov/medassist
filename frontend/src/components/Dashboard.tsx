@@ -25,7 +25,7 @@ export function Dashboard({ isDark }: DashboardProps) {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    const fetchData = async (retries = 3) => {
+    const fetchData = async (retries = 5) => {
       try {
         const [p, s] = await Promise.all([
           api.getProfile(),
@@ -33,15 +33,14 @@ export function Dashboard({ isDark }: DashboardProps) {
         ]);
         setProfile(p);
         setStats(s);
+        setLoading(false);
       } catch (err) {
         if (retries > 0) {
-          setTimeout(() => fetchData(retries - 1), 2000);
+          setTimeout(() => fetchData(retries - 1), 3000);
         } else {
           setError("Could not load data. Please try again.");
           setLoading(false);
         }
-      } finally {
-        if (retries === 3) setLoading(false);
       }
     };
     fetchData();
