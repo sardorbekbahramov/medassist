@@ -403,11 +403,15 @@ function LoadingState() {
         <p className="text-sm" style={{ color: "var(--tg-hint)" }}>
           Loading your health data...
         </p>
+        <p className="text-xs" style={{ color: "var(--tg-hint)" }}>
+          tg_id:{" "}
+          {(window as any).Telegram?.WebApp?.initDataUnsafe?.user?.id ||
+            "NOT FOUND"}
+        </p>
       </div>
     </div>
   );
 }
-
 function ErrorState({ message }: { message: string }) {
   return (
     <div className="flex items-center justify-center h-64 px-6 text-center">

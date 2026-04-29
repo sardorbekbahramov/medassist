@@ -1,18 +1,20 @@
 const BASE_URL = "https://medassist-j8zx.onrender.com/api";
+
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
   const tg = (window as any).Telegram?.WebApp;
   const headers: Record<string, string> = {
     "Content-Type": "application/json",
     ...(options?.headers as Record<string, string>),
   };
-  if (tg?.initData) {
-    headers["X-Telegram-Init-Data"] = tg.initData;
+
+  // Telegram ID ni har doim query param sifatida yuborish
+  const tgId = tg?.initDataUnsafe?.user?.id;
+  if (!tgId) {
+    throw new Error("Telegram user not found");
   }
 
-  // Dev fallback — telegram ID ni query param sifatida yuborish
-  const tgId = tg?.initDataUnsafe?.user?.id;
   const separator = path.includes("?") ? "&" : "?";
-  const fullPath = tgId ? `${path}${separator}tg_id=${tgId}` : path;
+  const fullPath = `${path}${separator}tg_id=${tgId}`;
 
   const res = await fetch(`${BASE_URL}${fullPath}`, { ...options, headers });
   if (!res.ok) {

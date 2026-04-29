@@ -97,7 +97,7 @@ async def handle_get_weekly_analytics(request: web.Request) -> web.Response:
 
     return web.json_response([
         {
-            "date": str(a.date),
+            "date": str(a.log_date),
             "water_ml": a.water_ml,
             "calories_consumed": a.calories_consumed,
             "protein_g": a.protein_g,
