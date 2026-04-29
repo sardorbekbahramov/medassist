@@ -14,12 +14,14 @@ from core.database import create_db_and_tables
 from core.redis import get_redis, close_redis
 from services.i18n_service import load_locales
 from bot.middlewares import AuthMiddleware, I18nMiddleware, AntiAbuseMiddleware
+
 from bot.routers import (
     start_router,
     analysis_router,
     location_router,
     dashboard_router,
     admin_router,
+    menu_router,
 )
 from bot.api_server import setup_api_routes
 
@@ -70,6 +72,7 @@ def create_dispatcher() -> Dispatcher:
 
     # Register routers
     dp.include_router(start_router)
+    dp.include_router(menu_router)
     dp.include_router(dashboard_router)
     dp.include_router(location_router)
     dp.include_router(admin_router)
@@ -96,6 +99,7 @@ async def main():
 
     # Register routers
     dp.include_router(start_router)
+    dp.include_router(menu_router)
     dp.include_router(dashboard_router)
     dp.include_router(location_router)
     dp.include_router(admin_router)

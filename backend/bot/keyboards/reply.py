@@ -15,9 +15,9 @@ def build_main_keyboard(lang: str, faq_items: List[FAQItem]) -> ReplyKeyboardMar
     # Default fallback buttons if no FAQ configured
     if not buttons:
         defaults = {
-            "en": ["🔬 Analyze", "📊 Dashboard", "🗺 Nearby", "👤 Profile", "❓ Help"],
-            "ru": ["🔬 Анализ", "📊 Статистика", "🗺 Рядом", "👤 Профиль", "❓ Помощь"],
-            "uz": ["🔬 Tahlil", "📊 Statistika", "🗺 Yaqin atrofda", "👤 Profil", "❓ Yordam"],
+            "en": ["🔬 Analyze", "📊 Dashboard", "🗺 Nearby", "👤 Profile", "📝 Daily Log", "❓ Help"],
+            "ru": ["🔬 Анализ", "📊 Статистика", "🗺 Рядом", "👤 Профиль", "📝 Дневник", "❓ Помощь"],
+            "uz": ["🔬 Tahlil", "📊 Statistika", "🗺 Yaqin atrofda", "👤 Profil", "📝 Kunlik jurnal", "❓ Yordam"],
         }
         for label in defaults.get(lang, defaults["en"]):
             buttons.append([KeyboardButton(text=label)])
