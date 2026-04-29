@@ -3,7 +3,8 @@ from aiogram.types import Message
 from aiogram.filters import Command
 
 from services.location_service import find_nearby_medical
-from bot.keyboards.reply import build_location_keyboard
+from services.user_service import UserService
+from bot.keyboards.reply import build_location_keyboard, build_main_keyboard
 
 router = Router()
 
@@ -18,15 +19,20 @@ async def cmd_nearby(message: Message, t, lang):
 
 
 @router.message(F.location)
-async def handle_location(message: Message, t):
+async def handle_location(message: Message, t, lang, db_user, user_service: UserService):
     lat = message.location.latitude
     lon = message.location.longitude
 
     searching_msg = await message.answer(t("location_searching"))
     places = await find_nearby_medical(lat, lon)
 
+    # Asosiy keyboardni qaytarish
+    faq_items = await user_service.get_active_faq_items()
+    main_kb = build_main_keyboard(lang, faq_items)
+
     if not places:
         await searching_msg.edit_text(t("location_none"))
+        await message.answer("🏠", reply_markup=main_kb)
         return
 
     lines = [t("location_found", count=len(places)), ""]
@@ -49,3 +55,4 @@ async def handle_location(message: Message, t):
         lines.append(line)
 
     await searching_msg.edit_text("\n".join(lines), parse_mode="HTML")
+    await message.answer("✅", reply_markup=main_kb)
