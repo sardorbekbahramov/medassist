@@ -44,18 +44,18 @@ def verify_init_data(init_data: str) -> dict | None:
 
 
 async def get_user_from_request(request: web.Request) -> User | None:
+    # Try tg_id query param first (always allowed for Mini App)
+    tg_id = request.rel_url.query.get("tg_id")
+    if tg_id:
+        async with AsyncSessionLocal() as session:
+            result = await session.execute(
+                select(User).where(User.telegram_id == int(tg_id))
+            )
+            return result.scalar_one_or_none()
+    # Try initData header
     init_data = request.headers.get("X-Telegram-Init-Data", "")
     tg_user = verify_init_data(init_data)
     if not tg_user:
-        # Dev fallback: allow query param for local testing
-        if settings.use_webhook is False:
-            tg_id = request.rel_url.query.get("tg_id")
-            if tg_id:
-                async with AsyncSessionLocal() as session:
-                    result = await session.execute(
-                        select(User).where(User.telegram_id == int(tg_id))
-                    )
-                    return result.scalar_one_or_none()
         return None
     async with AsyncSessionLocal() as session:
         result = await session.execute(
@@ -125,6 +125,63 @@ async def handle_get_nearby(request: web.Request) -> web.Response:
     places = await find_nearby_medical(lat, lon)
     return web.json_response(places)
 
+async def handle_update_profile(request: web.Request) -> web.Response:
+    user = await get_user_from_request(request)
+    if not user:
+        return web.json_response({"error": "Unauthorized"}, status=401)
+    try:
+        body = await request.json()
+    except Exception:
+        return web.json_response({"error": "Invalid JSON"}, status=400)
+    try:
+        from datetime import datetime
+        from models.user import Gender, Language
+        if "full_name" in body:
+            name = str(body["full_name"]).strip()
+            if 2 <= len(name) <= 128:
+                user.full_name = name
+        if "age" in body:
+            age = int(body["age"])
+            if 1 <= age <= 120:
+                user.age = age
+        if "weight_kg" in body:
+            w = float(body["weight_kg"])
+            if 1.0 <= w <= 500.0:
+                user.weight_kg = w
+        if "height_cm" in body:
+            h = float(body["height_cm"])
+            if 50.0 <= h <= 300.0:
+                user.height_cm = h
+        if "gender" in body and body["gender"] in ("male", "female", "other"):
+            user.gender = Gender(body["gender"])
+        if "language" in body and body["language"] in ("en", "ru", "uz"):
+            user.language = Language(body["language"])
+        user.daily_water_goal_ml = user.compute_water_goal()
+        user.daily_calories_goal = user.compute_calorie_goal()
+        user.updated_at = datetime.utcnow()
+        async with AsyncSessionLocal() as session:
+            session.add(user)
+            await session.commit()
+            await session.refresh(user)
+        return web.json_response({
+            "id": user.id, "telegram_id": user.telegram_id,
+            "full_name": user.full_name, "age": user.age,
+            "weight_kg": user.weight_kg, "height_cm": user.height_cm,
+            "gender": user.gender.value, "language": user.language.value,
+            "daily_water_goal_ml": user.daily_water_goal_ml,
+            "daily_calories_goal": user.daily_calories_goal,
+            "onboarding_complete": user.onboarding_complete,
+        })
+    except Exception as e:
+        return web.json_response({"error": str(e)}, status=500)
+
+
+async def handle_get_stats(request: web.Request) -> web.Response:
+    from sqlalchemy import func
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(select(func.count(User.id)))
+        count = result.scalar()
+    return web.json_response({"total_users": count})
 
 async def handle_health(request: web.Request) -> web.Response:
     return web.json_response({"status": "ok"})
@@ -151,6 +208,8 @@ def setup_api_routes(app: web.Application):
     app.router.add_get("/api/user/profile", handle_get_profile)
     app.router.add_get("/api/user/analytics/week", handle_get_weekly_analytics)
     app.router.add_get("/api/location/nearby", handle_get_nearby)
+    app.router.add_post("/api/user/profile", handle_update_profile)
+    app.router.add_get("/api/stats", handle_get_stats)
 
     # Serve Mini App static files (if built)
     import os

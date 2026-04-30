@@ -60,7 +60,13 @@ export interface NearbyPlace {
 
 export const api = {
   getProfile: () => request<UserProfile>("/user/profile"),
+  updateProfile: (data: Partial<UserProfile>) =>
+    request<UserProfile>("/user/profile", {
+      method: "POST",
+      body: JSON.stringify(data),
+    }),
   getWeeklyStats: () => request<DailyStats[]>("/user/analytics/week"),
   getNearby: (lat: number, lon: number) =>
     request<NearbyPlace[]>(`/location/nearby?lat=${lat}&lon=${lon}`),
+  getStats: () => request<{ total_users: number }>("/stats"),
 };
