@@ -3,11 +3,13 @@ from aiogram.types import Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.filters import CommandStart, Command
+from sqlmodel import select, func
 
-from models.user import Gender, Language
+from models.user import Gender, Language, User
 from services.user_service import UserService
 from bot.keyboards.inline import build_language_keyboard, build_gender_keyboard
 from bot.keyboards.reply import build_main_keyboard
+from core.database import AsyncSessionLocal
 
 router = Router()
 
@@ -21,14 +23,20 @@ class OnboardingFSM(StatesGroup):
     wait_language = State()
 
 
+async def get_total_users() -> int:
+    async with AsyncSessionLocal() as session:
+        result = await session.execute(select(func.count(User.id)))
+        return result.scalar() or 0
+
+
 @router.message(CommandStart())
 async def cmd_start(message: Message, state: FSMContext, db_user, user_service: UserService, t, lang):
     if db_user.onboarding_complete:
-        # Already onboarded — show main menu
+        total = await get_total_users()
         faq_items = await user_service.get_active_faq_items()
-        from bot.keyboards.reply import build_main_keyboard
         await message.answer(
-            f"👋 Welcome back, <b>{db_user.full_name}</b>!",
+            f"👋 Welcome back, <b>{db_user.full_name}</b>!\n\n"
+            f"👥 Total users: <b>{total}</b>",
             parse_mode="HTML",
             reply_markup=build_main_keyboard(lang, faq_items),
         )
@@ -86,7 +94,11 @@ async def onboarding_height(message: Message, state: FSMContext, t):
         return
     await state.update_data(height_cm=height)
     await state.set_state(OnboardingFSM.wait_gender)
-    await message.answer(t("onboarding_gender"), parse_mode="HTML", reply_markup=build_gender_keyboard())
+    await message.answer(
+        t("onboarding_gender"),
+        parse_mode="HTML",
+        reply_markup=build_gender_keyboard()
+    )
 
 
 @router.callback_query(F.data.startswith("gender:"), OnboardingFSM.wait_gender)
@@ -94,7 +106,11 @@ async def onboarding_gender(callback: CallbackQuery, state: FSMContext, t):
     gender_str = callback.data.split(":")[1]
     await state.update_data(gender=gender_str)
     await state.set_state(OnboardingFSM.wait_language)
-    await callback.message.edit_text(t("onboarding_language"), parse_mode="HTML", reply_markup=build_language_keyboard())
+    await callback.message.edit_text(
+        t("onboarding_language"),
+        parse_mode="HTML",
+        reply_markup=build_language_keyboard()
+    )
     await callback.answer()
 
 
@@ -123,17 +139,18 @@ async def onboarding_language(
     await db_session.commit()
     await state.clear()
 
-    # Use new language for completion message
     from services.i18n_service import t as translate
     new_t = lambda key, **kwargs: translate(key, lang=lang_str, **kwargs)
 
+    total = await get_total_users()
     faq_items = await user_service.get_active_faq_items()
+
     await callback.message.edit_text(
         new_t(
             "onboarding_complete",
             water_ml=updated_user.daily_water_goal_ml,
             calories=updated_user.daily_calories_goal,
-        ),
+        ) + f"\n\n👥 Total users: <b>{total}</b>",
         parse_mode="HTML",
     )
     await callback.message.answer(
