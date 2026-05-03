@@ -209,9 +209,11 @@ export function Dashboard({ isDark }: DashboardProps) {
                   border: "none",
                   borderRadius: 12,
                   fontSize: 12,
-                  color: isDark ? "#f9fafb" : "#111827",
+                  color: "#ffffff",
                   boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
                 }}
+                labelStyle={{ color: isDark ? "#38bdf8" : "#0284c7" }}
+                itemStyle={{ color: "#ffffff" }}
                 formatter={(v: number) => [`${v} ml`, "Water"]}
               />
               <Area
@@ -270,9 +272,11 @@ export function Dashboard({ isDark }: DashboardProps) {
                   border: "none",
                   borderRadius: 12,
                   fontSize: 12,
-                  color: isDark ? "#f9fafb" : "#111827",
+                  color: "#ffffff",
                   boxShadow: "0 4px 20px rgba(0,0,0,0.15)",
                 }}
+                labelStyle={{ color: isDark ? "#fb923c" : "#ea580c" }}
+                itemStyle={{ color: "#ffffff" }}
                 formatter={(v: number) => [`${v} kcal`, "Calories"]}
               />
               <Bar dataKey="calories" radius={[8, 8, 0, 0]} maxBarSize={32}>
