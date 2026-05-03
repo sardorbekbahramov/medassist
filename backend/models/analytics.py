@@ -48,13 +48,13 @@ class FAQItem(SQLModel, table=True):
     answer_uz: str = Field(max_length=1024)
     is_active: bool = Field(default=True)
 
-    class ProfileAuditLog(SQLModel, table=True):
-        __tablename__ = "profile_audit_logs"
-        id: Optional[int] = Field(default=None, primary_key=True)
-        user_id: int = Field(foreign_key="users.id", index=True)
-        changed_at: datetime = Field(
-            sa_column=Column(sa.DateTime, default=datetime.utcnow, nullable=False)
-        )
-        field_name: str = Field(max_length=64)
-        old_value: Optional[str] = Field(default=None, max_length=256)
-        new_value: Optional[str] = Field(default=None, max_length=256)
+class ProfileAuditLog(SQLModel, table=True):
+    __tablename__ = "profile_audit_logs"
+    id: Optional[int] = Field(default=None, primary_key=True)
+    user_id: int = Field(foreign_key="users.id", index=True)
+    changed_at: datetime = Field(
+        sa_column=Column(sa.DateTime, default=datetime.utcnow, nullable=False)
+    )
+    field_name: str = Field(max_length=64)
+    old_value: Optional[str] = Field(default=None, max_length=256)
+    new_value: Optional[str] = Field(default=None, max_length=256)
