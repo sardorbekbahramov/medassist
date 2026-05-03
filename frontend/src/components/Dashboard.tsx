@@ -333,7 +333,6 @@ export function Dashboard({ isDark }: DashboardProps) {
 }
 
 // ── Sub-components ────────────────────────────────────────────────────────────
-
 function StatCard({
   icon,
   label,
@@ -353,6 +352,15 @@ function StatCard({
   color: string;
   isDark: boolean;
 }) {
+  const [animPct, setAnimPct] = useState(0);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setAnimPct(pct);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [pct]);
+
   return (
     <div
       className="rounded-2xl p-4"
@@ -383,10 +391,11 @@ function StatCard({
         style={{ background: isDark ? "#1f2937" : "#e2e8f0" }}
       >
         <div
-          className="h-1.5 rounded-full transition-all duration-700"
+          className="h-1.5 rounded-full"
           style={{
-            width: `${pct}%`,
+            width: `${animPct}%`,
             background: `linear-gradient(90deg, ${color}99, ${color})`,
+            transition: "width 1.2s cubic-bezier(0.4, 0, 0.2, 1)",
           }}
         />
       </div>
