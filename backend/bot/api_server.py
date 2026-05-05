@@ -411,7 +411,7 @@ async def cors_middleware(request: web.Request, handler):
     else:
         response = await handler(request)
     response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Headers"] = "Content-Type, X-Telegram-Init-Data"
+    response.headers["Access-Control-Allow-Headers"] = "Content-Type, X-Telegram-Init-Data, X-Admin-Token"
     response.headers["Access-Control-Allow-Methods"] = "GET, POST, OPTIONS"
     return response
 
