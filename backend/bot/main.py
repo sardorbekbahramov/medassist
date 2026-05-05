@@ -34,14 +34,14 @@ logger = logging.getLogger(__name__)
 
 
 async def run_migrations():
-    """Alembic migration avtomatik ishga tushurish."""
     import subprocess
     import os
     import shutil
 
-    backend_dir = os.path.dirname(os.path.abspath(__file__))
+    # main.py → bot/ → backend/ (bir yuqoriga chiqamiz)
+    bot_dir = os.path.dirname(os.path.abspath(__file__))
+    backend_dir = os.path.dirname(bot_dir)  # ← bu o'zgardi
     
-    # alembic ning to'liq yo'lini topish
     alembic_path = shutil.which("alembic") or "/usr/local/bin/alembic"
     
     result = subprocess.run(
@@ -57,7 +57,6 @@ async def run_migrations():
     else:
         logger.error(f"❌ Migration failed: {result.stderr}")
         logger.error(f"stdout: {result.stdout}")
-        logger.error(f"alembic path: {alembic_path}")
 
 
 async def on_startup(bot: Bot, dp: Dispatcher):
