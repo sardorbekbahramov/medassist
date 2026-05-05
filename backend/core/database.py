@@ -1,4 +1,5 @@
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+from sqlalchemy import text
 from sqlmodel import SQLModel
 from core.config import settings
 
@@ -23,6 +24,11 @@ async def create_db_and_tables():
     """Create all tables on startup."""
     async with engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
+        # phone_number ustuni mavjud bo'lmasa qo'shish
+        await conn.execute(text("""
+            ALTER TABLE users
+            ADD COLUMN IF NOT EXISTS phone_number VARCHAR(20) DEFAULT NULL;
+        """))
 
 
 async def get_session() -> AsyncSession:
