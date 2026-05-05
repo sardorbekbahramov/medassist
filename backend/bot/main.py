@@ -39,18 +39,19 @@ async def run_migrations():
         import os
         from alembic.config import Config
         from alembic import command
+        import asyncio
 
         bot_dir = os.path.dirname(os.path.abspath(__file__))
         backend_dir = os.path.dirname(bot_dir)
         alembic_ini = os.path.join(backend_dir, "alembic.ini")
 
         alembic_cfg = Config(alembic_ini)
-        
-        # % belgisini escape qilish
         db_url = settings.database_url.replace("asyncpg", "psycopg2").replace("%", "%%")
         alembic_cfg.set_main_option("sqlalchemy.url", db_url)
 
-        command.upgrade(alembic_cfg, "head")
+        # Sync thread da ishlatish
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(None, lambda: command.upgrade(alembic_cfg, "head"))
         logger.info("✅ Migrations applied successfully.")
     except Exception as e:
         logger.error(f"❌ Migration failed: {e}")
