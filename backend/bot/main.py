@@ -45,11 +45,10 @@ async def run_migrations():
         alembic_ini = os.path.join(backend_dir, "alembic.ini")
 
         alembic_cfg = Config(alembic_ini)
-        # DATABASE_URL ni to'g'ridan-to'g'ri o'rnatish
-        alembic_cfg.set_main_option(
-            "sqlalchemy.url",
-            settings.database_url.replace("asyncpg", "psycopg2")
-        )
+        
+        # % belgisini escape qilish
+        db_url = settings.database_url.replace("asyncpg", "psycopg2").replace("%", "%%")
+        alembic_cfg.set_main_option("sqlalchemy.url", db_url)
 
         command.upgrade(alembic_cfg, "head")
         logger.info("✅ Migrations applied successfully.")
