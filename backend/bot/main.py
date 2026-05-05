@@ -34,29 +34,27 @@ logger = logging.getLogger(__name__)
 
 
 async def run_migrations():
-    import subprocess
-    import os
-    import shutil
+    """Alembic migration Python API orqali."""
+    try:
+        import os
+        from alembic.config import Config
+        from alembic import command
 
-    # main.py → bot/ → backend/ (bir yuqoriga chiqamiz)
-    bot_dir = os.path.dirname(os.path.abspath(__file__))
-    backend_dir = os.path.dirname(bot_dir)  # ← bu o'zgardi
-    
-    alembic_path = shutil.which("alembic") or "/usr/local/bin/alembic"
-    
-    result = subprocess.run(
-        [alembic_path, "upgrade", "head"],
-        cwd=backend_dir,
-        capture_output=True,
-        text=True,
-    )
-    if result.returncode == 0:
+        bot_dir = os.path.dirname(os.path.abspath(__file__))
+        backend_dir = os.path.dirname(bot_dir)
+        alembic_ini = os.path.join(backend_dir, "alembic.ini")
+
+        alembic_cfg = Config(alembic_ini)
+        # DATABASE_URL ni to'g'ridan-to'g'ri o'rnatish
+        alembic_cfg.set_main_option(
+            "sqlalchemy.url",
+            settings.database_url.replace("asyncpg", "psycopg2")
+        )
+
+        command.upgrade(alembic_cfg, "head")
         logger.info("✅ Migrations applied successfully.")
-        if result.stdout:
-            logger.info(result.stdout)
-    else:
-        logger.error(f"❌ Migration failed: {result.stderr}")
-        logger.error(f"stdout: {result.stdout}")
+    except Exception as e:
+        logger.error(f"❌ Migration failed: {e}")
 
 
 async def on_startup(bot: Bot, dp: Dispatcher):
