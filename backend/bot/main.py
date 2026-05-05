@@ -33,9 +33,30 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 
+async def run_migrations():
+    """Alembic migration avtomatik ishga tushurish."""
+    import subprocess
+    import os
+    backend_dir = os.path.dirname(os.path.abspath(__file__))
+    result = subprocess.run(
+        ["alembic", "upgrade", "head"],
+        cwd=backend_dir,
+        capture_output=True,
+        text=True,
+    )
+    if result.returncode == 0:
+        logger.info("✅ Migrations applied successfully.")
+        if result.stdout:
+            logger.info(result.stdout)
+    else:
+        logger.error("❌ Migration failed!")
+        logger.error(result.stderr)
+
+
 async def on_startup(bot: Bot, dp: Dispatcher):
     logger.info("Starting MedAssist bot...")
     load_locales()
+    await run_migrations()
     await create_db_and_tables()
     logger.info("Database tables created.")
 
@@ -60,23 +81,19 @@ async def on_shutdown(bot: Bot):
 
 def create_dispatcher() -> Dispatcher:
     """Build and configure the Aiogram dispatcher."""
-    # Redis-backed FSM storage
-    storage = None  # will be set async in main
     dp = Dispatcher()
 
-    # Register middlewares (order matters: Auth → i18n → AntiAbuse)
     dp.update.outer_middleware(AuthMiddleware())
     dp.message.middleware(I18nMiddleware())
     dp.callback_query.middleware(I18nMiddleware())
     dp.message.middleware(AntiAbuseMiddleware())
 
-    # Register routers
     dp.include_router(start_router)
     dp.include_router(menu_router)
     dp.include_router(dashboard_router)
     dp.include_router(location_router)
     dp.include_router(admin_router)
-    dp.include_router(analysis_router)  # analysis last (catch-all text handler)
+    dp.include_router(analysis_router)
 
     return dp
 
