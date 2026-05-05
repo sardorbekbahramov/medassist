@@ -1,5 +1,5 @@
 from aiogram import Router, F
-from aiogram.types import Message, CallbackQuery
+from aiogram.types import Message, CallbackQuery, ReplyKeyboardMarkup, KeyboardButton, ReplyKeyboardRemove
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.filters import CommandStart, Command
@@ -21,12 +21,22 @@ class OnboardingFSM(StatesGroup):
     wait_height = State()
     wait_gender = State()
     wait_language = State()
+    wait_phone = State()        # ← YANGI
 
 
 async def get_total_users() -> int:
     async with AsyncSessionLocal() as session:
         result = await session.execute(select(func.count(User.id)))
         return result.scalar() or 0
+
+
+def build_phone_keyboard() -> ReplyKeyboardMarkup:
+    """Telefon raqamini ulashish tugmasi."""
+    return ReplyKeyboardMarkup(
+        keyboard=[[KeyboardButton(text="📱 Share phone number", request_contact=True)]],
+        resize_keyboard=True,
+        one_time_keyboard=True,
+    )
 
 
 @router.message(CommandStart())
@@ -115,17 +125,52 @@ async def onboarding_gender(callback: CallbackQuery, state: FSMContext, t):
 
 
 @router.callback_query(F.data.startswith("lang:"), OnboardingFSM.wait_language)
-async def onboarding_language(
-    callback: CallbackQuery,
+async def onboarding_language(callback: CallbackQuery, state: FSMContext, t):
+    lang_str = callback.data.split(":")[1]
+    await state.update_data(language=lang_str)
+    await state.set_state(OnboardingFSM.wait_phone)
+    await callback.message.answer(
+        "📱 Please share your phone number:",
+        reply_markup=build_phone_keyboard(),
+    )
+    await callback.answer()
+
+
+@router.message(OnboardingFSM.wait_phone, F.contact)
+async def onboarding_phone_contact(
+    message: Message,
     state: FSMContext,
     db_user,
     user_service: UserService,
-    t,
-    lang,
     db_session,
 ):
-    lang_str = callback.data.split(":")[1]
+    """Kontakt tugmasi orqali raqam ulashilganda."""
+    phone = message.contact.phone_number
+    await _finish_onboarding(message, state, db_user, user_service, db_session, phone)
+
+
+@router.message(OnboardingFSM.wait_phone)
+async def onboarding_phone_text(
+    message: Message,
+    state: FSMContext,
+    db_user,
+    user_service: UserService,
+    db_session,
+):
+    """Foydalanuvchi raqamni qo'lda yozsa."""
+    phone = message.text.strip() if message.text else ""
+    # Oddiy validatsiya: + va raqamlar, 7-15 ta belgi
+    import re
+    if not re.match(r"^\+?\d{7,15}$", phone):
+        await message.answer("❌ Invalid phone number. Please share via button or type like +998901234567")
+        return
+    await _finish_onboarding(message, state, db_user, user_service, db_session, phone)
+
+
+async def _finish_onboarding(message, state, db_user, user_service, db_session, phone: str):
+    """Onboardingni yakunlash."""
     data = await state.get_data()
+    lang_str = data["language"]
 
     updated_user = await user_service.update_profile(
         user=db_user,
@@ -135,6 +180,7 @@ async def onboarding_language(
         height_cm=data["height_cm"],
         gender=Gender(data["gender"]),
         language=Language(lang_str),
+        phone_number=phone,
     )
     await db_session.commit()
     await state.clear()
@@ -145,19 +191,19 @@ async def onboarding_language(
     total = await get_total_users()
     faq_items = await user_service.get_active_faq_items()
 
-    await callback.message.edit_text(
+    await message.answer(
         new_t(
             "onboarding_complete",
             water_ml=updated_user.daily_water_goal_ml,
             calories=updated_user.daily_calories_goal,
         ) + f"\n\n👥 Total users: <b>{total}</b>",
         parse_mode="HTML",
+        reply_markup=ReplyKeyboardRemove(),
     )
-    await callback.message.answer(
+    await message.answer(
         "✅",
         reply_markup=build_main_keyboard(lang_str, faq_items),
     )
-    await callback.answer()
 
 
 @router.message(Command("profile"))

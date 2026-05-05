@@ -46,6 +46,7 @@ class UserService:
         height_cm: float,
         gender,
         language: Language,
+        phone_number: str = None,
     ) -> User:
         user.full_name = full_name
         user.age = age

@@ -31,10 +31,12 @@ class User(SQLModel, table=True):
     height_cm: float = Field(ge=50.0, le=300.0)
     gender: Gender = Field(default=Gender.other)
     language: Language = Field(default=Language.en)
+    
 
     # Goals (auto-computed on save)
     daily_water_goal_ml: int = Field(default=2000)
     daily_calories_goal: int = Field(default=2000)
+    phone_number: Optional[str] = Field(default=None, max_length=20)
 
     # Flags
     is_active: bool = Field(default=True)
