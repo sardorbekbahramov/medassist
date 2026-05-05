@@ -37,9 +37,15 @@ async def run_migrations():
     """Alembic migration avtomatik ishga tushurish."""
     import subprocess
     import os
+    import shutil
+
     backend_dir = os.path.dirname(os.path.abspath(__file__))
+    
+    # alembic ning to'liq yo'lini topish
+    alembic_path = shutil.which("alembic") or "/usr/local/bin/alembic"
+    
     result = subprocess.run(
-        ["alembic", "upgrade", "head"],
+        [alembic_path, "upgrade", "head"],
         cwd=backend_dir,
         capture_output=True,
         text=True,
@@ -49,8 +55,9 @@ async def run_migrations():
         if result.stdout:
             logger.info(result.stdout)
     else:
-        logger.error("❌ Migration failed!")
-        logger.error(result.stderr)
+        logger.error(f"❌ Migration failed: {result.stderr}")
+        logger.error(f"stdout: {result.stdout}")
+        logger.error(f"alembic path: {alembic_path}")
 
 
 async def on_startup(bot: Bot, dp: Dispatcher):
