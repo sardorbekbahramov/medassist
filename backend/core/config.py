@@ -33,7 +33,7 @@ class Settings(BaseSettings):
     admin_ids: List[int] = []
 
     # Security
-    secret_key: str = "change_me"
+    secret_key: str = "medical_assist_ntcc2026"
 
     @field_validator("admin_ids", mode="before")
     @classmethod
