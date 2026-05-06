@@ -519,6 +519,7 @@ function UserDetailPage({
   const infoRows = [
     ["Telegram ID", user.telegram_id],
     ["Username", user.username ? `@${user.username}` : "—"],
+    ["Phone", user.phone_number || "—"],
     ["Age", `${user.age} years`],
     ["Weight", `${user.weight_kg} kg`],
     ["Height", `${user.height_cm} cm`],

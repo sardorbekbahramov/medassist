@@ -306,6 +306,7 @@ async def handle_admin_user_detail(request: web.Request) -> web.Response:
             "language": user.language.value if user.language else None,
             "is_active": user.is_active, "is_admin": user.is_admin,
             "onboarding_complete": user.onboarding_complete,
+            "phone_number": user.phone_number,
             "created_at": str(user.created_at),
         },
         "audit_logs": [{
