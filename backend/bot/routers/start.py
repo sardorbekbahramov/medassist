@@ -42,10 +42,19 @@ def build_phone_keyboard() -> ReplyKeyboardMarkup:
 @router.message(CommandStart())
 async def cmd_start(message: Message, state: FSMContext, db_user, user_service: UserService, t, lang):
     if db_user.onboarding_complete:
+        # Telefon raqam yo'q bo'lsa so'rash
+        if not db_user.phone_number:
+            await state.set_state(OnboardingFSM.wait_phone)
+            await message.answer(
+                "📱 Please share your phone number to continue:",
+                reply_markup=build_phone_keyboard(),
+            )
+            return
+
         total = await get_total_users()
         faq_items = await user_service.get_active_faq_items()
         await message.answer(
-            f"👋 Welcome back, <b>{db_user.full_name}</b>!\n\n"
+            f"Welcome back dear, <b>{db_user.full_name}</b>!\n\n"
             f"👥 Total users: <b>{total}</b>",
             parse_mode="HTML",
             reply_markup=build_main_keyboard(lang, faq_items),
@@ -144,7 +153,6 @@ async def onboarding_phone_contact(
     user_service: UserService,
     db_session,
 ):
-    """Kontakt tugmasi orqali raqam ulashilganda."""
     phone = message.contact.phone_number
     await _finish_onboarding(message, state, db_user, user_service, db_session, phone)
 
@@ -157,9 +165,7 @@ async def onboarding_phone_text(
     user_service: UserService,
     db_session,
 ):
-    """Foydalanuvchi raqamni qo'lda yozsa."""
     phone = message.text.strip() if message.text else ""
-    # Oddiy validatsiya: + va raqamlar, 7-15 ta belgi
     import re
     if not re.match(r"^\+?\d{7,15}$", phone):
         await message.answer("❌ Invalid phone number. Please share via button or type like +998901234567")
@@ -168,10 +174,29 @@ async def onboarding_phone_text(
 
 
 async def _finish_onboarding(message, state, db_user, user_service, db_session, phone: str):
-    """Onboardingni yakunlash."""
     data = await state.get_data()
-    lang_str = data["language"]
+    
+    # Eski user (faqat telefon qo'shilayapti)
+    if db_user.onboarding_complete:
+        db_user.phone_number = phone
+        db_session.add(db_user)
+        await db_session.commit()
+        await state.clear()
+        lang_str = db_user.language.value if db_user.language else "en"
+        faq_items = await user_service.get_active_faq_items()
+        await message.answer(
+            "✅ Phone number saved!",
+            reply_markup=ReplyKeyboardRemove(),
+        )
+        await message.answer(
+            f"👋 Welcome back, <b>{db_user.full_name}</b>!",
+            parse_mode="HTML",
+            reply_markup=build_main_keyboard(lang_str, faq_items),
+        )
+        return
 
+    # Yangi user (to'liq onboarding)
+    lang_str = data["language"]
     updated_user = await user_service.update_profile(
         user=db_user,
         full_name=data["full_name"],
