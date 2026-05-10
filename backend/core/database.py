@@ -21,13 +21,19 @@ AsyncSessionLocal = async_sessionmaker(
 
 
 async def create_db_and_tables():
-    """Create all tables on startup."""
     async with engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
-        # phone_number ustuni mavjud bo'lmasa qo'shish
         await conn.execute(text("""
             ALTER TABLE users
             ADD COLUMN IF NOT EXISTS phone_number VARCHAR(20) DEFAULT NULL;
+        """))
+        await conn.execute(text("""
+            ALTER TABLE daily_analytics
+            ADD COLUMN IF NOT EXISTS sleep_hours FLOAT DEFAULT 0.0;
+        """))
+        await conn.execute(text("""
+            ALTER TABLE daily_analytics
+            ADD COLUMN IF NOT EXISTS walking_steps INTEGER DEFAULT 0;
         """))
 
 

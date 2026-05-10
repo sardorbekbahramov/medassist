@@ -57,6 +57,11 @@ export interface NearbyPlace {
   opening_hours?: string;
   address?: string;
 }
+export interface GoalEntry {
+  date: string;
+  sleep_hours: number;
+  walking_steps: number;
+}
 
 export const api = {
   getProfile: () => request<UserProfile>("/user/profile"),
@@ -69,4 +74,10 @@ export const api = {
   getNearby: (lat: number, lon: number) =>
     request<NearbyPlace[]>(`/location/nearby?lat=${lat}&lon=${lon}`),
   getStats: () => request<{ total_users: number }>("/stats"),
+  getWeeklyGoals: () => request<GoalEntry[]>("/user/goals/week"),
+  logGoal: (type: "sleep" | "walking", value: number, date: string) =>
+    request<GoalEntry>("/user/goals/log", {
+      method: "POST",
+      body: JSON.stringify({ type, value, date }),
+    }),
 };

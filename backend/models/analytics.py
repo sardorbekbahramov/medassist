@@ -24,6 +24,8 @@ class DailyAnalytics(SQLModel, table=True):
     carbs_g: float = Field(default=0.0)
     text_analyses_count: int = Field(default=0)
     vision_analyses_count: int = Field(default=0)
+    sleep_hours: float = Field(default=0.0)
+    walking_steps: int = Field(default=0)
     ai_summary: Optional[str] = Field(default=None, max_length=2048)
 
     created_at: datetime = Field(

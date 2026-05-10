@@ -105,6 +105,8 @@ async def handle_get_weekly_analytics(request: web.Request) -> web.Response:
             "carbs_g": a.carbs_g,
             "text_analyses_count": a.text_analyses_count,
             "vision_analyses_count": a.vision_analyses_count,
+            "sleep_hours": a.sleep_hours,       # ← QO'SHILDI
+            "walking_steps": a.walking_steps,   # ← QO'SHILDI
         }
         for a in analytics
     ])
@@ -236,6 +238,74 @@ async def handle_update_profile(request: web.Request) -> web.Response:
     except Exception as e:
         return web.json_response({"error": str(e)}, status=500)
 
+async def handle_log_goal(request: web.Request) -> web.Response:
+    """Uyqu yoki yurish ma'lumotini saqlash."""
+    user = await get_user_from_request(request)
+    if not user:
+        return web.json_response({"error": "Unauthorized"}, status=401)
+    try:
+        body = await request.json()
+        goal_type = body.get("type")  # "sleep" yoki "walking"
+        value = float(body.get("value", 0))
+        log_date = body.get("date")   # "YYYY-MM-DD"
+
+        if goal_type not in ("sleep", "walking") or value <= 0 or not log_date:
+            return web.json_response({"error": "Invalid data"}, status=400)
+
+        from datetime import date as date_type
+        parsed_date = date_type.fromisoformat(log_date)
+
+        async with AsyncSessionLocal() as session:
+            result = await session.execute(
+                select(DailyAnalytics).where(
+                    DailyAnalytics.user_id == user.id,
+                    DailyAnalytics.log_date == parsed_date,
+                )
+            )
+            analytics = result.scalar_one_or_none()
+            if not analytics:
+                analytics = DailyAnalytics(user_id=user.id, log_date=parsed_date)
+                session.add(analytics)
+
+            if goal_type == "sleep":
+                analytics.sleep_hours = value
+            else:
+                analytics.walking_steps = int(value)
+
+            await session.commit()
+            await session.refresh(analytics)
+
+        return web.json_response({
+            "date": str(analytics.log_date),
+            "sleep_hours": analytics.sleep_hours,
+            "walking_steps": analytics.walking_steps,
+        })
+    except Exception as e:
+        return web.json_response({"error": str(e)}, status=500)
+
+
+async def handle_get_goals(request: web.Request) -> web.Response:
+    """Oxirgi 7 kunlik goals statistikasi."""
+    user = await get_user_from_request(request)
+    if not user:
+        return web.json_response({"error": "Unauthorized"}, status=401)
+
+    async with AsyncSessionLocal() as session:
+        from datetime import date as date_type, timedelta
+        cutoff = date_type.today() - timedelta(days=6)
+        result = await session.execute(
+            select(DailyAnalytics).where(
+                DailyAnalytics.user_id == user.id,
+                DailyAnalytics.log_date >= cutoff,
+            ).order_by(DailyAnalytics.log_date)
+        )
+        rows = result.scalars().all()
+
+    return web.json_response([{
+        "date": str(r.log_date),
+        "sleep_hours": r.sleep_hours,
+        "walking_steps": r.walking_steps,
+    } for r in rows])
 
 async def handle_get_stats(request: web.Request) -> web.Response:
     from sqlalchemy import func
@@ -314,9 +384,12 @@ async def handle_admin_user_detail(request: web.Request) -> web.Response:
             "new": l.new_value, "at": str(l.changed_at)
         } for l in logs],
         "analytics": [{
-            "date": str(a.log_date), "water_ml": a.water_ml,
+            "date": str(a.log_date),
+            "water_ml": a.water_ml,
             "calories": a.calories_consumed,
-            "ai_count": a.text_analyses_count + a.vision_analyses_count
+            "ai_count": a.text_analyses_count + a.vision_analyses_count,
+            "sleep_hours": a.sleep_hours,       # ← QO'SHILDI
+            "walking_steps": a.walking_steps,   # ← QO'SHILDI
         } for a in analytics],
     })
 
@@ -432,6 +505,8 @@ def setup_api_routes(app: web.Application):
     app.router.add_delete("/admin/users/{user_id}", handle_admin_delete)
     app.router.add_post("/admin/broadcast", handle_admin_broadcast)
     app.router.add_get("/admin/stats", handle_admin_stats)
+    app.router.add_post("/api/user/goals/log", handle_log_goal)
+    app.router.add_get("/api/user/goals/week", handle_get_goals)
 
     # Serve Mini App static files (if built)
     import os
