@@ -30,7 +30,8 @@ class User(SQLModel, table=True):
     weight_kg: float = Field(ge=1.0, le=500.0)
     height_cm: float = Field(ge=50.0, le=300.0)
     gender: Gender = Field(default=Gender.other)
-    language: Language = Field(default=Language.en)
+    language: Language = Field(default=Language.uz)
+    # language: Language = Field(default=Language.en)
     
 
     # Goals (auto-computed on save)

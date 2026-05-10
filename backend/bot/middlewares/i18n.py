@@ -14,7 +14,8 @@ class I18nMiddleware(BaseMiddleware):
         data: Dict[str, Any],
     ) -> Any:
         user = data.get("db_user")
-        lang = user.language.value if user and user.language else "en"
+        # lang = user.language.value if user and user.language else "en"
+        lang = user.language.value if user and user.language else "uz"
 
         def t(key: str, **kwargs) -> str:
             return translate(key, lang=lang, **kwargs)
