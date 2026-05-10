@@ -54,6 +54,7 @@ class UserService:
         user.height_cm = height_cm
         user.gender = gender
         user.language = language
+        user.phone_number = phone_number   # ← QO'SHILDI
         user.daily_water_goal_ml = user.compute_water_goal()
         user.daily_calories_goal = user.compute_calorie_goal()
         user.onboarding_complete = True
